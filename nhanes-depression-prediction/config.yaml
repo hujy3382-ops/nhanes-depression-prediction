@@ -1,0 +1,40 @@
+# ===== 全局设置 =====
+seed: 42
+
+# ===== 数据来源 (NHANES 2017-2018, 文件后缀 _J) =====
+cycle_year: 2017
+suffix: J
+base_url: "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/{year}/DataFiles/{name}_{suffix}.xpt"
+files:
+  - DEMO    # 人口学: 年龄 RIDAGEYR, 性别 RIAGENDR, 种族 RIDRETH3, 教育 DMDEDUC2, 收入比 INDFMPIR
+  - DPQ     # PHQ-9: DPQ010 ~ DPQ090
+  - HSCRP   # 超敏 CRP: LBXHSCRP (mg/L)
+  - BMX     # 体测: BMXBMI, BMXWAIST
+  - CBC     # 血常规: LBXWBCSI, LBXNEPCT, LBXLYPCT, LBXHGB, LBXPLTSI
+  - GHB     # 糖化血红蛋白: LBXGH
+  - HDL     # 高密度脂蛋白: LBDHDD
+  - TCHOL   # 总胆固醇: LBXTC
+
+# ===== 路径 =====
+raw_dir: data/raw
+processed_path: data/processed/analysis.csv
+figures_dir: figures
+results_dir: results
+
+# ===== 研究人群与结局 =====
+min_age: 18
+phq9_items: [DPQ010, DPQ020, DPQ030, DPQ040, DPQ050, DPQ060, DPQ070, DPQ080, DPQ090]
+phq9_cutoff: 10          # PHQ-9 >= 10 定义为中重度抑郁症状
+target: depression
+
+# ===== 特征 =====
+features:
+  numeric: [RIDAGEYR, INDFMPIR, BMXBMI, BMXWAIST, LBXHSCRP, LBXWBCSI,
+            LBXNEPCT, LBXLYPCT, LBXHGB, LBXPLTSI, LBXGH, LBDHDD, LBXTC]
+  categorical: [RIAGENDR, RIDRETH3, DMDEDUC2]
+log_transform: [LBXHSCRP]  # 右偏分布, 取 log1p
+
+# ===== 建模 =====
+test_size: 0.2
+cv_folds: 5
+threshold: 0.5             # 计算敏感度/特异度时用的概率阈值 (Day 4 可思考是否该改)
