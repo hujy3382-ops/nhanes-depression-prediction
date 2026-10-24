@@ -9,8 +9,8 @@ from src.download import download_all
 from src.evaluate import evaluate_all, plot_curves
 from src.explain import shap_summary
 from src.preprocess import run_preprocessing
-from src.train import (build_preprocessor, cross_validate_models, fit_all,
-                       get_models, split_data)
+from src.train import (build_preprocessor, choose_thresholds, cross_validate_models,
+                       fit_all, get_models, split_data)
 from src.utils import ensure_dir, load_config, set_seed
 
 
@@ -50,7 +50,11 @@ def main(config_path: str, skip_download: bool) -> None:
     # 4. 测试集评估
     print("== Step 4/5: Test-set evaluation ==")
     fitted = fit_all(models, preprocessor, X_train, y_train)
-    test_table = evaluate_all(fitted, X_test, y_test, cfg["threshold"])
+    thresholds = choose_thresholds(models, preprocessor, X_train, y_train,
+                                   cfg["cv_folds"], cfg["seed"])
+    print("Youden thresholds (chosen on training OOF):",
+          {k: round(v, 3) for k, v in thresholds.items()})
+    test_table = evaluate_all(fitted, X_test, y_test, thresholds)
     test_table.to_csv(results / "test_results.csv", index=False)
     print(test_table.round(3).to_string(index=False))
     plot_curves(fitted, X_test, y_test, str(figures))

@@ -1,4 +1,7 @@
 """Day 3–4 — 构建模型，交叉验证比较多个模型。"""
+import numpy as np
+from sklearn.metrics import roc_curve
+from sklearn.model_selection import cross_val_predict
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
@@ -108,3 +111,20 @@ def fit_all(models: dict, preprocessor: ColumnTransformer,
         pipe.fit(X, y)
         fitted[name] = pipe
     return fitted
+
+
+def choose_thresholds(models: dict, preprocessor: ColumnTransformer,
+                      X: pd.DataFrame, y: pd.Series,
+                      folds: int, seed: int) -> dict:
+    """用训练集的折外 (out-of-fold) 预测概率，为每个模型选 Youden 最优阈值。
+
+    只用训练集选阈值，测试集完全不参与，避免数据泄漏。
+    """
+    cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=seed)
+    thresholds = {}
+    for name, model in models.items():
+        pipe = make_pipeline(preprocessor, model)
+        oof = cross_val_predict(pipe, X, y, cv=cv, method="predict_proba")[:, 1]
+        fpr, tpr, thr = roc_curve(y, oof)
+        thresholds[name] = float(thr[np.argmax(tpr - fpr)])
+    return thresholds
