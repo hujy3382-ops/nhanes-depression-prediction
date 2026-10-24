@@ -1,6 +1,8 @@
 """Day 4 — 在测试集上评估，画 ROC / PR / 校准曲线。"""
 from pathlib import Path
 import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 matplotlib.use("Agg")  # 只保存图片, 不弹窗口; 避免多线程下的 Tk 报错
 import matplotlib.pyplot as plt
 import pandas as pd
