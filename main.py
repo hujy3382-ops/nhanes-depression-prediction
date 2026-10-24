@@ -62,6 +62,8 @@ def main(config_path: str, skip_download: bool) -> None:
     # 5. 可解释性
     print("== Step 5/5: SHAP ==")
     shap_summary(fitted["XGBoost"], X_test, str(figures / "shap_summary.png"))
+    shap_summary(fitted["LogisticRegression"], X_test,
+                 str(figures / "shap_summary_lr.png"))
     print("Done. See results/ and figures/.")
 
 
