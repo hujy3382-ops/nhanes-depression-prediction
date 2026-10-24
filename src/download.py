@@ -14,7 +14,7 @@ def build_url(base_url: str, name: str, year: int, suffix: str) -> str:
 
     提示: base_url 里有 {year} {name} {suffix} 三个占位符，查一下 str.format()。
     """
-    raise NotImplementedError("TODO Day 2")
+    return  base_url.format(year=year, name=name, suffix=suffix)
 
 
 def download_file(url: str, dest: Path) -> None:
@@ -27,12 +27,23 @@ def download_file(url: str, dest: Path) -> None:
       4. dest.write_bytes(response.content)
       5. print 一行日志，说明下载了什么
     """
-    raise NotImplementedError("TODO Day 2")
+    if dest.exists():
+        print(f"已存在，跳过：{dest.name}")
+        return
+    response = requests.get(url, timeout=60)
+    response.raise_for_status()
+    dest.write_bytes(response.content)
+    print(f"已下载：{dest.name}")
 
 
 def download_all(config: dict) -> None:
     """遍历 config["files"]，逐个下载到 config["raw_dir"]。
 
-    提示: 用 ensure_dir 建文件夹；文件名可以用 f"{name}_{suffix}.xpt"。
+    提示: 用 ensure_dir 建文件夹; 文件名可以用 f"{name}_{suffix}.xpt"。
     """
-    raise NotImplementedError("TODO Day 2")
+    raw_dir = ensure_dir(config["raw_dir"])
+    for name in config["files"]:
+        url = build_url(config["base_url"], name,
+                        config["cycle_year"], config["suffix"])
+        dest = raw_dir / f"{name}_{config['suffix']}.xpt"
+        download_file(url, dest)
