@@ -1,6 +1,7 @@
 # 数据不上传 GitHub（体积大，且应由 download.py 自动获取）
 data/
 __pycache__/
+.pytest_cache/
 *.pyc
 .ipynb_checkpoints/
 .venv/
