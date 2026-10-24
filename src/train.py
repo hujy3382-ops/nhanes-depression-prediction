@@ -17,7 +17,10 @@ def split_data(df: pd.DataFrame, features: list[str], target: str,
     提示: train_test_split(..., stratify=y)
     思考: 抑郁只占约 8–9%，为什么必须 stratify？
     """
-    raise NotImplementedError("TODO Day 3")
+    X = df[features]
+    y = df[target]
+    return train_test_split(X, y, test_size=test_size,
+                            stratify=y, random_state=seed)
 
 
 def build_preprocessor(numeric: list[str], categorical: list[str]) -> ColumnTransformer:
@@ -30,8 +33,12 @@ def build_preprocessor(numeric: list[str], categorical: list[str]) -> ColumnTran
                            ("onehot", OneHotEncoder(handle_unknown="ignore"))])
       return ColumnTransformer([("num", num_pipe, numeric), ("cat", cat_pipe, categorical)])
     """
-    raise NotImplementedError("TODO Day 3")
-
+    num_pipe = Pipeline([("impute", SimpleImputer(strategy="median")),
+                         ("scale", StandardScaler())])
+    cat_pipe = Pipeline([("impute", SimpleImputer(strategy="most_frequent")),
+                         ("onehot", OneHotEncoder(handle_unknown="ignore"))])
+    return ColumnTransformer([("num", num_pipe, numeric),
+                              ("cat", cat_pipe, categorical)])
 
 def get_models(seed: int, pos_weight: float) -> dict:
     """返回 {模型名: 未训练的模型} 字典。
@@ -43,16 +50,23 @@ def get_models(seed: int, pos_weight: float) -> dict:
                                           scale_pos_weight=pos_weight, random_state=seed, eval_metric="logloss")
     pos_weight = 阴性人数 / 阳性人数 (在 main.py 里算好传进来)
     """
-    raise NotImplementedError("TODO Day 4")
+    return {
+        "LogisticRegression": LogisticRegression(max_iter=1000, class_weight="balanced"),
+        "RandomForest": RandomForestClassifier(n_estimators=300, class_weight="balanced",
+                                               random_state=seed, n_jobs=-1),
+        "XGBoost": XGBClassifier(n_estimators=300, max_depth=3, learning_rate=0.05,
+                                 scale_pos_weight=pos_weight, random_state=seed,
+                                 eval_metric="logloss"),
+    }
 
-
+from sklearn.base import clone
 def make_pipeline(preprocessor: ColumnTransformer, model) -> Pipeline:
     """把预处理和模型串成一个 Pipeline: [("prep", ...), ("model", ...)]。
 
     面试必问: 为什么插补/标准化要放进 Pipeline，而不是在划分数据之前对整张表做？
     """
-    raise NotImplementedError("TODO Day 3")
-
+    return Pipeline([("prep", clone(preprocessor)),
+                     ("model", clone(model))])
 
 def cross_validate_models(models: dict, preprocessor: ColumnTransformer,
                           X: pd.DataFrame, y: pd.Series,
@@ -66,7 +80,20 @@ def cross_validate_models(models: dict, preprocessor: ColumnTransformer,
       scores = cross_validate(pipe, X, y, cv=cv, scoring=["roc_auc", "average_precision"])
       scores["test_roc_auc"].mean()
     """
-    raise NotImplementedError("TODO Day 4")
+    cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=seed)
+    rows = []
+    for name, model in models.items():
+        pipe = make_pipeline(preprocessor, model)
+        scores = cross_validate(pipe, X, y, cv=cv,
+                                scoring=["roc_auc", "average_precision"])
+        rows.append({
+            "model": name,
+            "auroc_mean": scores["test_roc_auc"].mean(),
+            "auroc_std": scores["test_roc_auc"].std(),
+            "auprc_mean": scores["test_average_precision"].mean(),
+            "auprc_std": scores["test_average_precision"].std(),
+        })
+    return pd.DataFrame(rows)
 
 
 def fit_all(models: dict, preprocessor: ColumnTransformer,
@@ -75,4 +102,9 @@ def fit_all(models: dict, preprocessor: ColumnTransformer,
 
     提示: 每个模型都要用 sklearn.base.clone(preprocessor)，避免共用同一个对象。
     """
-    raise NotImplementedError("TODO Day 4")
+    fitted = {}
+    for name, model in models.items():
+        pipe = make_pipeline(preprocessor, model)
+        pipe.fit(X, y)
+        fitted[name] = pipe
+    return fitted
