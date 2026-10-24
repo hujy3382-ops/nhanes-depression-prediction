@@ -4,6 +4,13 @@
 这个文件已经写好。等 src/ 里的函数都实现了，它就能跑通。
 """
 import argparse
+import argparse
+
+import pandas as pd
+
+from src.ablation import bootstrap_ci, crp_ablation
+...
+from src.ablation import bootstrap_ci, crp_ablation
 
 from src.download import download_all
 from src.evaluate import evaluate_all, plot_curves
@@ -58,12 +65,26 @@ def main(config_path: str, skip_download: bool) -> None:
     test_table.to_csv(results / "test_results.csv", index=False)
     print(test_table.round(3).to_string(index=False))
     plot_curves(fitted, X_test, y_test, str(figures))
+    ci_rows = []
+    for name, pipe in fitted.items():
+        auc, lo, hi = bootstrap_ci(y_test, pipe.predict_proba(X_test)[:, 1],
+                                   seed=cfg["seed"])
+        ci_rows.append({"model": name, "auroc": auc, "ci_low": lo, "ci_high": hi})
+    ci_table = pd.DataFrame(ci_rows)
+    ci_table.to_csv(results / "test_auroc_ci.csv", index=False)
+    print("Test AUROC with 95% bootstrap CI:")
+    print(ci_table.round(3).to_string(index=False))
 
     # 5. 可解释性
     print("== Step 5/5: SHAP ==")
     shap_summary(fitted["XGBoost"], X_test, str(figures / "shap_summary.png"))
     shap_summary(fitted["LogisticRegression"], X_test,
                  str(figures / "shap_summary_lr.png"))
+    print("== Extra: hs-CRP ablation ==")
+    abl = crp_ablation(models, numeric, categorical, X_train, y_train,
+                       X_test, y_test, seed=cfg["seed"])
+    abl.to_csv(results / "crp_ablation.csv", index=False)
+    print(abl.round(3).to_string(index=False))
     print("Done. See results/ and figures/.")
 
 
